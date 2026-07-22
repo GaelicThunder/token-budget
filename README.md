@@ -8,10 +8,33 @@ weekly usage limits the session may burn.
 
 ## Install
 
+Clone straight into your Claude Code skills folder, then restart Claude Code.
+
+**macOS / Linux**
+
 ```bash
-git clone https://github.com/GaelicThunder/token-budget ~/Applications/token-budget
-ln -s ~/Applications/token-budget ~/.claude/skills/token-budget
+git clone https://github.com/GaelicThunder/token-budget ~/.claude/skills/token-budget
 ```
+
+**Windows (PowerShell)**
+
+```powershell
+git clone https://github.com/GaelicThunder/token-budget "$env:USERPROFILE\.claude\skills\token-budget"
+```
+
+Prefer keeping the repo elsewhere? Clone it wherever you like and link it:
+
+```bash
+# macOS / Linux
+ln -s /path/to/token-budget ~/.claude/skills/token-budget
+```
+
+```powershell
+# Windows (junction, no admin needed)
+New-Item -ItemType Junction -Path "$env:USERPROFILE\.claude\skills\token-budget" -Target "C:\path\to\token-budget"
+```
+
+Per-project instead of global: clone into `<project>/.claude/skills/token-budget`.
 
 ## Usage
 
