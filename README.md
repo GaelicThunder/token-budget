@@ -41,8 +41,8 @@ Per-project instead of global: clone into `<project>/.claude/skills/token-budget
 ```
 /token-budget <level> [5h=<n>] [weekly=<n>]
 
-/token-budget ultra                   # no cap → default: wind down at 5% of each window, stop at 10%
-/token-budget ultra 5h=20             # ≤20% of the 5-hour window; weekly stays on the default
+/token-budget ultra                   # no cap → default: wind down at 5% of the 5-hour window, stop at 10%
+/token-budget ultra 5h=20             # ≤20% of the 5-hour window; weekly untracked
 /token-budget medium 5h=20 weekly=60  # both windows capped explicitly
 /token-budget                         # asks the level only — caps are never interrogated
 ```
@@ -53,19 +53,21 @@ and gets rejected — Claude will ask which limit you meant.
 
 | Level  | Savings | Behavior |
 |--------|---------|----------|
-| low    | light   | concise output, ≤1 Sonnet subagent, no speculative work |
-| medium | strong  | telegraphic output, subagents only when blocked |
-| ultra  | max     | shortest possible output, no subagents, fragment-only reads |
+| low    | light   | concise output, web delegate + ≤1 extra Sonnet subagent, no speculative work |
+| medium | strong  | telegraphic output, only the web delegate unless blocked |
+| ultra  | max     | shortest possible output, web delegate is the only subagent, fragment-only reads |
 
-Web search is **never blocked at any level** — most tasks need it. It's just kept lean
-(targeted queries, no re-fetching).
+Web search is **never blocked at any level** — most tasks need it. But it is always
+**delegated**: a cheap Sonnet subagent does the searching/reading and returns a short
+digest, so raw web pages never enter the expensive main context.
 
 Each cap is the share of that Claude usage window (5-hour or weekly) the session is
 allowed to consume. Claude warns before expensive actions and asks you to check
 `/usage` when in doubt. Per window:
 
 - **explicit cap** → winds down at 80% of the cap, hard stop at 100%;
-- **no cap (default)** → winds down at 5% of the window used, hard stop at 10%.
+- **no cap (default)** → winds down at 5% of the **5-hour window** used, hard stop at
+  10% of it; the weekly limit is only tracked if you cap it explicitly.
 
 If an explicit cap is ≤10%, the skill automatically applies one level stricter than
 requested.
@@ -74,7 +76,10 @@ requested.
 
 - Every tool call resends the whole conversation → fewer, batched calls.
 - Output tokens cost ~5× input → short answers.
-- Subagents duplicate context → avoided; Sonnet when unavoidable.
+- Code subagents duplicate context → avoided. Web research is the exception: a cheap
+  Sonnet delegate reads the pages and returns a digest — cheap-model tokens weigh far
+  less on the 5h/weekly limits, and the main context stays small (it is resent on
+  every call).
 
 ## License
 
