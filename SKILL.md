@@ -1,7 +1,7 @@
 ---
 name: token-budget
-description: "Hard token-saving mode for the whole session: minimal output, few or no subagents (Sonnet-only for research), and a user-defined cap on the 5-hour and weekly usage limits. Levels: low, medium, ultra (ultra = max savings). Use when the user invokes /token-budget, mentions token budget, saving tokens, risparmiare token, or wants to limit Claude usage. Args: [low|medium|ultra] [max-% of limits]."
-argument-hint: "[low|medium|ultra] [max-%]"
+description: "Hard token-saving mode for the whole session: minimal output, few or no subagents (Sonnet-only for research), and a user-defined cap on the 5-hour and weekly usage limits. Levels: low, medium, ultra (ultra = max savings). Use when the user invokes /token-budget, mentions token budget, saving tokens, risparmiare token, or wants to limit Claude usage. Args: [low|medium|ultra] [5h=<n>] [weekly=<n>] — caps always labeled by window."
+argument-hint: "[low|medium|ultra] [5h=<n>] [weekly=<n>]"
 ---
 
 # Token Budget Mode
@@ -11,10 +11,10 @@ Physics to respect: every tool call resends the whole conversation (few large ca
 
 ## Activate
 
-1. Parse args: `level` ∈ `low|medium|ultra`, `cap` = max % of BOTH the 5-hour window and the weekly limit this session may consume.
-2. Anything missing → ONE AskUserQuestion call asking for it. Level options: low / medium / ultra. Cap options: 10% / 25% / 50%.
-3. If cap ≤ 10%, apply one level stricter than requested (low→medium, medium→ultra).
-4. Confirm in ONE line: `Token budget ON — <level>, max <cap>% of 5h/weekly.` Nothing else.
+1. Parse args: `level` ∈ `low|medium|ultra`, plus caps **labeled by window**: `5h=<n>` and/or `weekly=<n>` (also accept `20%5h`, `w=10`). A cap % without its window is INVALID — a bare number (e.g. `20`) is ambiguous: ask which window it refers to. Never assume.
+2. Anything missing → ONE AskUserQuestion call asking for it. Level options: low / medium / ultra. 5h cap options: 10% / 25% / 50%. Weekly cap options: 10% / 25% / 50%.
+3. If any cap ≤ 10%, apply one level stricter than requested (low→medium, medium→ultra).
+4. Confirm in ONE line naming BOTH windows explicitly, e.g.: `Token budget ON — ultra, max 20% of 5h window, 60% of weekly limit.` (uncapped window → say "no cap"). Never state a % without naming its window — here or anywhere later in the session.
 5. Rules hold for the entire session, until the user says "stop token budget".
 
 ## All levels
@@ -24,7 +24,7 @@ Physics to respect: every tool call resends the whole conversation (few large ca
 - Read fragments (`offset`/`limit`), not whole files. Never re-read what is already in context. Grep with narrow paths and `head_limit`.
 - No speculative work: no drive-by refactors, no extra docs, nothing not asked.
 - Batch shell commands (`&&`) when safe; minimize total tool-call count.
-- Web/MCP: only when the task requires it, max 1–2 fetches.
+- **Web search: NEVER blocked, at any level** — most tasks need it. Keep it lean: targeted queries, no re-fetching the same page, extract what you need instead of quoting walls of text.
 
 ## Levels
 
@@ -37,10 +37,10 @@ Physics to respect: every tool call resends the whole conversation (few large ca
 - Telegraphic style: short sentences, bullets, no filler. 1-line task summaries.
 - No subagents unless blocked without one (then 1× Sonnet, tight prompt, minimal output requested).
 - Read ≤200 lines per call. Prefer asking the user for exact paths over broad searching.
-- No web unless the user asks. Commit messages: subject line only.
+- Commit messages: subject line only.
 
 ### ultra — max savings
-- NO subagents. NO web/MCP unless the user explicitly asks.
+- NO subagents. Web still allowed: one targeted search/fetch at a time, no broad fan-out.
 - Shortest correct answer: one line when possible; code = diff only, zero commentary.
 - Read ≤100 lines per call; max 1 exploratory search per request — if not found, ask the user for the exact path.
 - Skip README/TODO/TO_FIX maintenance this session (overrides the global docs rule). Auto-commit stays, subject-only message.
