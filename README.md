@@ -18,13 +18,15 @@ ln -s ~/Applications/token-budget ~/.claude/skills/token-budget
 ```
 /token-budget <level> [5h=<n>] [weekly=<n>]
 
-/token-budget ultra 5h=20 weekly=60   # max savings; ≤20% of the 5-hour window, ≤60% of the weekly limit
-/token-budget medium 5h=50            # weekly left uncapped
-/token-budget                         # asks level + both caps interactively
+/token-budget ultra                   # no cap → default: wind down at 5% of each window, stop at 10%
+/token-budget ultra 5h=20             # ≤20% of the 5-hour window; weekly stays on the default
+/token-budget medium 5h=20 weekly=60  # both windows capped explicitly
+/token-budget                         # asks the level only — caps are never interrogated
 ```
 
-Caps are **always labeled by window** (`5h=` / `weekly=`). A bare number like `20` is
-ambiguous and gets rejected — Claude will ask which limit you meant.
+Caps are **optional** — one window is enough, both never required. When given, they are
+**always labeled by window** (`5h=` / `weekly=`): a bare number like `20` is ambiguous
+and gets rejected — Claude will ask which limit you meant.
 
 | Level  | Savings | Behavior |
 |--------|---------|----------|
@@ -36,10 +38,14 @@ Web search is **never blocked at any level** — most tasks need it. It's just k
 (targeted queries, no re-fetching).
 
 Each cap is the share of that Claude usage window (5-hour or weekly) the session is
-allowed to consume. Claude warns before expensive actions, asks you to check `/usage`
-when in doubt, winds down at 80% of a cap and stops at 100%.
+allowed to consume. Claude warns before expensive actions and asks you to check
+`/usage` when in doubt. Per window:
 
-If the cap is ≤10%, the skill automatically applies one level stricter than requested.
+- **explicit cap** → winds down at 80% of the cap, hard stop at 100%;
+- **no cap (default)** → winds down at 5% of the window used, hard stop at 10%.
+
+If an explicit cap is ≤10%, the skill automatically applies one level stricter than
+requested.
 
 ## Why it works
 

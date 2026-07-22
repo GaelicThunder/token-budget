@@ -1,6 +1,6 @@
 ---
 name: token-budget
-description: "Hard token-saving mode for the whole session: minimal output, few or no subagents (Sonnet-only for research), and a user-defined cap on the 5-hour and weekly usage limits. Levels: low, medium, ultra (ultra = max savings). Use when the user invokes /token-budget, mentions token budget, saving tokens, risparmiare token, or wants to limit Claude usage. Args: [low|medium|ultra] [5h=<n>] [weekly=<n>] — caps always labeled by window."
+description: "Hard token-saving mode for the whole session: minimal output, few or no subagents (Sonnet-only for research), and optional per-window caps on the 5-hour / weekly usage limits (no cap given → default: wind down at 5% of the window, stop at 10%). Levels: low, medium, ultra (ultra = max savings). Use when the user invokes /token-budget, mentions token budget, saving tokens, risparmiare token, or wants to limit Claude usage. Args: [low|medium|ultra] [5h=<n>] [weekly=<n>] — caps labeled by window, one is enough."
 argument-hint: "[low|medium|ultra] [5h=<n>] [weekly=<n>]"
 ---
 
@@ -11,11 +11,12 @@ Physics to respect: every tool call resends the whole conversation (few large ca
 
 ## Activate
 
-1. Parse args: `level` ∈ `low|medium|ultra`, plus caps **labeled by window**: `5h=<n>` and/or `weekly=<n>` (also accept `20%5h`, `w=10`). A cap % without its window is INVALID — a bare number (e.g. `20`) is ambiguous: ask which window it refers to. Never assume.
-2. Anything missing → ONE AskUserQuestion call asking for it. Level options: low / medium / ultra. 5h cap options: 10% / 25% / 50%. Weekly cap options: 10% / 25% / 50%.
-3. If any cap ≤ 10%, apply one level stricter than requested (low→medium, medium→ultra).
-4. Confirm in ONE line naming BOTH windows explicitly, e.g.: `Token budget ON — ultra, max 20% of 5h window, 60% of weekly limit.` (uncapped window → say "no cap"). Never state a % without naming its window — here or anywhere later in the session.
-5. Rules hold for the entire session, until the user says "stop token budget".
+1. Parse args: `level` ∈ `low|medium|ultra`; optional caps **labeled by window**: `5h=<n>` and/or `weekly=<n>` (also accept `20%5h`, `w=10`). **One window is enough — never require both.** A bare number (e.g. `20`) is ambiguous: ask which window it refers to. Never assume.
+2. No caps given → NO questions: the **default** applies to both windows — wind down at 5% of the window used, hard stop at 10%. An explicit cap overrides the default for its window only.
+3. Level missing → ONE AskUserQuestion call (low / medium / ultra). Never ask for caps.
+4. If any explicit cap ≤ 10%, apply one level stricter than requested (low→medium, medium→ultra).
+5. Confirm in ONE line naming windows explicitly, e.g.: `Token budget ON — ultra, 5h: max 20%, weekly: default (stop 10%).` Never state a % without naming its window — here or anywhere later in the session.
+6. Rules hold for the entire session, until the user says "stop token budget".
 
 ## All levels
 
@@ -49,6 +50,9 @@ Physics to respect: every tool call resends the whole conversation (few large ca
 ## Enforcing the cap
 
 - You cannot read usage directly. When in doubt, ask the user to check `/usage` (or `npx ccusage@latest blocks` for the live 5h block) and report the %.
-- Before any single action likely to burn a noticeable slice of the cap (subagent, >500-line read, long generation), state the cost in one line first.
-- If reported usage ≥ 80% of the cap: finish the current step only, report state in 2 lines, start nothing new.
-- At 100% of the cap: stop. Say what remains undone.
+- Before any single action likely to burn a noticeable slice of the budget (subagent, >500-line read, long generation), state the cost in one line first.
+- Thresholds, per window:
+  - **Explicit cap** (`5h=N` / `weekly=N`): wind down at 80% of that cap, hard stop at 100%.
+  - **Default** (window with no explicit cap): wind down at 5% of the window used, hard stop at 10%.
+- Wind down = finish the current step only, report state in 2 lines, start nothing new.
+- Hard stop = stop. Say what remains undone.
